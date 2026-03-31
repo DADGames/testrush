@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Beach Merge</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ТВОЙ КОНФИГ ИЗ СКРИНШОТА
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUzAbJBjV6H9M-iUg2yDNIE6OF9mjMDbs",
+            authDomain: "resortrush-7e79c.firebaseapp.com",
+            projectId: "resortrush-7e79c",
+            storageBucket: "resortrush-7e79c.firebasestorage.app",
+            messagingSenderId: "158135556219",
+            appId: "1:158135556219:web:09630d90e3823d18e12ade",
+            measurementId: "G-V75XKMSXMX"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Функция сохранения результата
+        function saveResultToCloud(finalScore) {
+            const playerName = localStorage.getItem('pName') || "Аноним";
+            const resortName = localStorage.getItem('rName') || "Остров";
+            let country = localStorage.getItem('userCountry') || "Неизвестно";
+
+            // Исправляем название страны
+            if (country === "Киргизия") country = "Кыргызстан";
+
+            db.collection("leaderboard").add({
+                name: playerName,
+                resortName: resortName,
+                country: country,
+                points: finalScore,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                window.location.href = 'rating.html';
+            })
+            .catch((error) => {
+                console.error("Ошибка: ", error);
+                window.location.href = 'rating.html';
+            });
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+            height: 100vh;
+            user-select: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 30%, #FFE4B5 60%, #F4A460 100%);
+        }
+        
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .coins {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+            z-index: 100;
+        }
+        
+        .next-drink {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.95);
+            padding: 10px 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-align: center;
+            pointer-events: auto;
+            z-index: 100;
+        }
+        
+        .next-drink span {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .orders {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+            z-index: 100;
+        }
+        
+        .order-card {
+            background: linear-gradient(135deg, #FFF8DC, #FFE4B5);
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            text-align: center;
+            min-width: 75px;
+            border: 2px solid #DEB887;
+            transition: all 0.3s;
+        }
+        
+        .order-card.completed {
+            opacity: 0.4;
+            transform: scale(0.9);
+        }
+        
+        .order-card .drink-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        
+        .order-card .reward {
+            font-size: 14px;
+            color: #DAA520;
+            font-weight: bold;
+        }
+        
+        .danger-line {
+            position: absolute;
+            bottom: 100px;
+            left: 5%;
+            right: 5%;
+            height: 4px;
+            background: repeating-linear-gradient(
+                90deg,
+                #FF4444 0px,
+                #FF4444 12px,
+                transparent 12px,
+                transparent 20px
+            );
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 50;
+            animation: pulseDanger 1s infinite;
+        }
+        
+        @keyframes pulseDanger {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+        
+        .game-over.show {
+            display: flex;
+        }
+        
+        .game-over h2 {
+            color: #FF4444;
+            font-size: 52px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(255,68,68,0.6);
+        }
+        
+        .game-over button {
+            padding: 18px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            border-radius: 35px;
+            color: #8B4513;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        
+        .coin-popup {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+            animation: floatUp 1.2s ease-out forwards;
+            z-index: 200;
+        }
+        
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-100px) scale(1.4); }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas"></canvas>
+        <div class="ui-layer">
+            <div class="coins" id="coins">1200</div>
+            <div class="next-drink">
+                <span>Next</span>
+                <div id="nextDrinkIcon" style="font-size: 40px;">🥤</div>
+            </div>
+            <div class="orders" id="orders"></div>
+            <div class="danger-line"></div>
+        </div>
+        <div class="game-over" id="gameOver">
+            <h2>ПРОИГРЫШ!</h2>
+            <p style="color: white; margin-bottom: 30px; font-size: 20px;">Стол переполнен!</p>
+            <button id="saveBtn">Сохранить и Выйти</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const SLIDE_GRAVITY = 0.025;
+        const FRICTION = 0.95;
+        const STOP_SPEED = 0.3;
+        const MINIMAL_BOUNCE = 0.05;
+        const SHOOT_SPEED = 23; 
+        const TABLE_LENGTH_FACTOR = 0.7;
+        const AIM_LINE_LENGTH = 2.0; 
+        
+        let drinks = [];
+        let particles = [];
+        let coins = 1200;
+        let nextDrinkType = 0;
+        let aimX = 0;
+        let isGameOver = false;
+        let orders = [];
+        let gameTime = 0;
+        let table = {};
+        
+        const drinkTypes = [
+            { name: 'shot', emoji: '🥃', size: 20, color: '#8B4513', value: 10 },
+            { name: 'small', emoji: '🧃', size: 24, color: '#90EE90', value: 20 },
+            { name: 'juice', emoji: '🥤', size: 28, color: '#FFA500', value: 30 },
+            { name: 'cocktail', emoji: '🍹', size: 32, color: '#FF69B4', value: 50 },
+            { name: 'tropical', emoji: '🍸', size: 36, color: '#00FF7F', value: 80 },
+            { name: 'pitcher', emoji: '🍶', size: 40, color: '#FFD700', value: 120 },
+            { name: 'mega', emoji: '🏺', size: 45, color: '#9370DB', value: 200 }
+        ];
+        
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            calculateTable();
+        }
+        
+        function calculateTable() {
+            const availableHeight = canvas.height - 180;
+            const tableHeight = availableHeight * TABLE_LENGTH_FACTOR;
+            const topY = 100;
+            const bottomY = topY + tableHeight;
+            
+            table = {
+                topY: topY,
+                bottomY: bottomY,
+                dangerY: bottomY - 15,
+                centerX: canvas.width / 2,
+                topWidth: canvas.width * 0.55,
+                bottomWidth: canvas.width * 0.85,
+                height: tableHeight,
+                aimLineY: topY + tableHeight * 0.7,
+                getWidthAtY(y) {
+                    const t = (y - this.topY) / this.height;
+                    return this.topWidth + (this.bottomWidth - this.topWidth) * t;
+                },
+                getLeftAtY(y) {
+                    return this.centerX - this.getWidthAtY(y) / 2;
+                },
+                getRightAtY(y) {
+                    return this.centerX + this.getWidthAtY(y) / 2;
+                }
+            };
+            
+            aimX = table.centerX;
+        }
+        
+        resize();
+        window.addEventListener('resize', resize);
+        
+        class Drink {
+            constructor(x, y, type, isGhost = false) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.vx = 0;
+                this.vy = 0;
+                this.radius = drinkTypes[type].size;
+                this.emoji = drinkTypes[type].emoji;
+                this.color = drinkTypes[type].color;
+                this.isGhost = isGhost;
+                this.isStatic = false;
+                this.mass = this.radius;
+                this.justBounced = false;
+            }
+            
+            update() {
+                if (this.isGhost || this.isStatic) return;
+                
+                this.vy += SLIDE_GRAVITY;
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                this.vx *= FRICTION;
+                this.vy *= FRICTION;
+                
+                const leftBound = table.getLeftAtY(this.y);
+                const rightBound = table.getRightAtY(this.y);
+                
+                if (this.x - this.radius < leftBound + 3) {
+                    this.x = leftBound + this.radius + 3;
+                    if (!this.justBounced) {
+                        this.vx = Math.abs(this.vx) * MINIMAL_BOUNCE + 0.1;
+                        this.justBounced = true;
+                        setTimeout(() => this.justBounced = false, 100);
+                    } else {
+                        this.vx = 0;
+                    }
+                }
+                else if (this.x + this.radius > rightBound - 3) {
+                    this.x = rightBound - this.radius - 3;
+                    if (!this.justBounced) {
+                        this.vx = -Math.abs(this.vx) * MINIMAL_BOUNCE - 0.1;
+                        this.justBounced = true;
+                        setTimeout(() => this.justBounced = false, 100);
+                    } else {
+                        this.vx = 0;
+                    }
+                }
+                
+                if (this.y - this.radius < table.topY) {
+                    this.y = table.topY + this.radius;
+                    if (!this.justBounced) {
+                        this.vy = Math.abs(this.vy) * MINIMAL_BOUNCE;
+                        this.justBounced = true;
+                        setTimeout(() => this.justBounced = false, 100);
+                    } else {
+                        this.vy = 0;
+                    }
+                }
+                
+                const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                if (speed < STOP_SPEED) {
+                    this.isStatic = true;
+                    this.vx = 0;
+                    this.vy = 0;
+                }
+                
+                if (this.y > table.dangerY) {
+                    triggerGameOver();
+                }
+            }
+            
+            wakeUp(pushVx, pushVy) {
+                if (this.isStatic) {
+                    this.isStatic = false;
+                    this.justBounced = true;
+                    this.vx = pushVx * 0.1;
+                    this.vy = pushVy * 0.1;
+                    setTimeout(() => this.justBounced = false, 150);
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                
+                if (!this.isGhost) {
+                    ctx.beginPath();
+                    ctx.ellipse(this.x, this.y + this.radius + 2, this.radius * 0.5, this.radius * 0.2, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                    ctx.fill();
+                }
+                
+                const gradient = ctx.createRadialGradient(
+                    this.x - this.radius/3, this.y - this.radius/3, 0,
+                    this.x, this.y, this.radius
+                );
+                gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+                gradient.addColorStop(0.3, this.color);
+                gradient.addColorStop(1, this.color);
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(this.x - this.radius/3, this.y - this.radius/3, this.radius/4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fill();
+                
+                ctx.font = `${this.radius * 1.3}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, this.x, this.y);
+                
+                if (this.type >= 4 && !this.isGhost) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 4, 0, Math.PI * 2);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = 0.5 + Math.sin(gameTime * 0.12) * 0.4;
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10 - 3;
+                this.life = 1;
+                this.color = color;
+                this.size = Math.random() * 6 + 3;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.2;
+                this.life -= 0.025;
+                this.size *= 0.97;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        function generateOrders() {
+            orders = [];
+            const types = [2, 3, 4];
+            for (let i = 0; i < 2; i++) {
+                orders.push({
+                    type: types[Math.floor(Math.random() * types.length)],
+                    completed: false,
+                    id: Date.now() + i
+                });
+            }
+            updateOrdersUI();
+        }
+        
+        function updateOrdersUI() {
+            const container = document.getElementById('orders');
+            container.innerHTML = '';
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = `order-card ${order.completed ? 'completed' : ''}`;
+                card.innerHTML = `
+                    <div class="drink-icon">${drinkTypes[order.type].emoji}</div>
+                    <div class="reward">🪙 ${drinkTypes[order.type].value * 5}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        function checkCollisions() {
+            for (let iter = 0; iter < 2; iter++) {
+                for (let i = 0; i < drinks.length; i++) {
+                    for (let j = i + 1; j < drinks.length; j++) {
+                        const d1 = drinks[i];
+                        const d2 = drinks[j];
+                        
+                        if (d1.isGhost || d2.isGhost) continue;
+                        
+                        const dx = d2.x - d1.x;
+                        const dy = d2.y - d1.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const minDist = d1.radius + d2.radius;
+                        
+                        if (dist < minDist && dist > 0.1) {
+                            if (d1.type === d2.type && d1.type < drinkTypes.length - 1) {
+                                const s1 = Math.sqrt(d1.vx*d1.vx + d1.vy*d1.vy);
+                                const s2 = Math.sqrt(d2.vx*d2.vx + d2.vy*d2.vy);
+                                if (s1 < 1.5 && s2 < 1.5) {
+                                    mergeDrinks(d1, d2);
+                                    return;
+                                }
+                            }
+                            
+                            const overlap = minDist - dist;
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+                            const sep = overlap * 0.5;
+                            
+                            if (!d1.isStatic) {
+                                d1.x -= nx * sep;
+                                d1.y -= ny * sep;
+                            } else {
+                                d1.x -= nx * sep * 0.5;
+                            }
+                            if (!d2.isStatic) {
+                                d2.x += nx * sep;
+                                d2.y += ny * sep;
+                            } else {
+                                d2.x += nx * sep * 0.5;
+                            }
+                            
+                            const v1 = Math.sqrt(d1.vx*d1.vx + d1.vy*d1.vy);
+                            const v2 = Math.sqrt(d2.vx*d2.vx + d2.vy*d2.vy);
+                            
+                            if (v1 > 0.2 || v2 > 0.2) {
+                                const pushVx = (d1.vx + d2.vx) * 0.05;
+                                const pushVy = (d1.vy + d2.vy) * 0.05;
+                                
+                                if (d1.isStatic && v2 > v1) {
+                                    d1.wakeUp(pushVx, pushVy);
+                                    d2.vx *= 0.3;
+                                    d2.vy *= 0.3;
+                                } else if (d2.isStatic && v1 > v2) {
+                                    d2.wakeUp(pushVx, pushVy);
+                                    d1.vx *= 0.3;
+                                    d1.vy *= 0.3;
+                                } else if (!d1.isStatic && !d2.isStatic) {
+                                    d1.vx *= 0.5;
+                                    d1.vy *= 0.5;
+                                    d2.vx *= 0.5;
+                                    d2.vy *= 0.5;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function mergeDrinks(d1, d2) {
+            const newX = (d1.x + d2.x) / 2;
+            const newY = (d1.y + d2.y) / 2;
+            const newType = d1.type + 1;
+            
+            drinks = drinks.filter(d => d !== d1 && d !== d2);
+            
+            const newDrink = new Drink(newX, newY, newType);
+            newDrink.vy = -0.2;
+            drinks.push(newDrink);
+            
+            createParticles(newX, newY, drinkTypes[newType].color);
+            showCoins(newX, newY, drinkTypes[newType].value);
+            
+            coins += drinkTypes[newType].value;
+            updateCoins();
+            checkOrders(newType);
+        }
+        
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+        
+        function showCoins(x, y, amount) {
+            const popup = document.createElement('div');
+            popup.className = 'coin-popup';
+            popup.textContent = `+${amount}`;
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            document.getElementById('gameContainer').appendChild(popup);
+            setTimeout(() => popup.remove(), 1200);
+        }
+        
+        function checkOrders(type) {
+            orders.forEach(order => {
+                if (!order.completed && order.type === type) {
+                    order.completed = true;
+                    coins += drinkTypes[type].value * 5;
+                    updateCoins();
+                    updateOrdersUI();
+                    
+                    if (orders.every(o => o.completed)) {
+                        setTimeout(generateOrders, 500);
+                    }
+                }
+            });
+        }
+        
+        function updateCoins() {
+            document.getElementById('coins').textContent = coins;
+        }
+        
+        function shoot() {
+            if (isGameOver) return;
+            
+            const startX = aimX;
+            const startY = table.bottomY - 25;
+            const targetX = aimX; 
+            const targetY = table.aimLineY;
+            
+            const drink = new Drink(startX, startY, nextDrinkType);
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            drink.vx = (dx / dist) * SHOOT_SPEED;
+            drink.vy = (dy / dist) * SHOOT_SPEED;
+            
+            drinks.push(drink);
+            
+            nextDrinkType = Math.floor(Math.random() * Math.min(3 + Math.floor(coins/800), 5));
+            updateNextDrink();
+        }
+        
+        function updateNextDrink() {
+            document.getElementById('nextDrinkIcon').textContent = drinkTypes[nextDrinkType].emoji;
+        }
+        
+        function triggerGameOver() {
+            if (isGameOver) return;
+            isGameOver = true;
+            document.getElementById('gameOver').classList.add('show');
+            
+            // Сразу отправляем данные в Firebase и переходим
+            saveResultToCloud(coins);
+            
+            document.getElementById('saveBtn').onclick = function() {
+                saveResultToCloud(coins);
+            };
+        }
+        
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            return clientX - rect.left;
+        }
+        
+        function updateAim(clientX) {
+            const bottomLeft = table.getLeftAtY(table.bottomY - 25);
+            const bottomRight = table.getRightAtY(table.bottomY - 25);
+            aimX = Math.max(bottomLeft + 25, Math.min(bottomRight - 25, clientX));
+        }
+        
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            updateAim(getPos(e));
+        });
+        
+        canvas.addEventListener('pointermove', (e) => {
+            e.preventDefault();
+            updateAim(getPos(e));
+        });
+        
+        canvas.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            shoot();
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            updateAim(getPos(e));
+            shoot();
+        }, {passive: false});
+        
+        function drawTable() {
+            ctx.save();
+            const woodGrad = ctx.createLinearGradient(0, table.topY, 0, table.bottomY);
+            woodGrad.addColorStop(0, '#D4A574');
+            woodGrad.addColorStop(0.5, '#C49464');
+            woodGrad.addColorStop(1, '#A67B5B');
+            
+            ctx.beginPath();
+            const tl = table.getLeftAtY(table.topY);
+            const tr = table.getRightAtY(table.topY);
+            const bl = table.getLeftAtY(table.bottomY);
+            const br = table.getRightAtY(table.bottomY);
+            
+            ctx.moveTo(tl, table.topY);
+            ctx.lineTo(tr, table.topY);
+            ctx.lineTo(br, table.bottomY);
+            ctx.lineTo(bl, table.bottomY);
+            ctx.closePath();
+            
+            ctx.fillStyle = woodGrad;
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(139,90,43,0.3)';
+            ctx.lineWidth = 2;
+            for (let i = 1; i < 7; i++) {
+                const t = i / 7;
+                const topX = tl + (tr - tl) * t;
+                const bottomX = bl + (br - bl) * t;
+                ctx.beginPath();
+                ctx.moveTo(topX, table.topY);
+                ctx.lineTo(bottomX, table.bottomY);
+                ctx.stroke();
+            }
+            
+            ctx.strokeStyle = '#8B6914';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 8]);
+            ctx.beginPath();
+            const aimLeft = table.getLeftAtY(table.aimLineY);
+            const aimRight = table.getRightAtY(table.aimLineY);
+            ctx.moveTo(aimLeft, table.aimLineY);
+            ctx.lineTo(aimRight, table.aimLineY);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        function drawAim() {
+            const startX = aimX;
+            const startY = table.bottomY - 25;
+            const lineLength = (table.bottomY - 25 - table.topY) * AIM_LINE_LENGTH;
+            const targetY = Math.max(table.topY + 20, startY - lineLength);
+            const targetX = aimX; 
+            
+            ctx.save();
+            ctx.shadowColor = 'rgba(255,255,255,0.8)';
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([20, 15]);
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(targetX, targetY);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(targetX, targetY);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 18, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.setLineDash([]);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            const ghost = new Drink(startX, startY, nextDrinkType, true);
+            ghost.draw();
+            
+            ctx.beginPath();
+            ctx.arc(startX, startY, 40, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        function gameLoop() {
+            gameTime++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTable();
+            drawAim();
+            
+            drinks.forEach(d => d.update());
+            drinks.sort((a, b) => a.y - b.y);
+            drinks.forEach(d => d.draw());
+            
+            particles = particles.filter(p => {
+                p.update();
+                p.draw();
+                return p.life > 0;
+            });
+            
+            checkCollisions();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        generateOrders();
+        updateCoins();
+        updateNextDrink();
+        gameLoop();
+    </script>
+</body>
+</html>

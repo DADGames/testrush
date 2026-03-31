@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Итоги | Beach Merge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Nunito:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --win-color: #2ECC71;
+            --font-main: 'Fredoka', sans-serif;
+            --orange: #FF8C00;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('assets/map.png');
+            background-size: cover;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Nunito', sans-serif; color: white; overflow: hidden;
+        }
+
+        .finish-card {
+            background: #fdf5e6; color: #333;
+            width: 85%; max-width: 380px;
+            padding: 30px; border-radius: 30px;
+            border: 6px solid var(--orange);
+            text-align: center;
+            box-shadow: 0 15px 0 #d35400, 0 20px 40px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        h1 { font-family: var(--font-main); color: var(--orange); font-size: 2.5rem; margin-bottom: 10px; }
+        
+        .score-display {
+            background: #eee; padding: 20px; border-radius: 20px;
+            margin: 20px 0; font-size: 2rem; font-weight: bold;
+            border: 3px dashed #ccc; color: #8B4513;
+        }
+
+        .btn {
+            width: 100%; padding: 18px; margin: 10px 0;
+            border: none; border-radius: 50px;
+            font-family: var(--font-main); font-size: 1.4rem;
+            cursor: pointer; transition: 0.2s;
+        }
+
+        .btn-ad {
+            background: #f1c40f; color: #8B4513;
+            box-shadow: 0 6px 0 #d4ac0d;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
+        .btn-collect { background: var(--win-color); color: white; box-shadow: 0 6px 0 #27ae60; }
+        
+        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 inherit; }
+
+        .saving-loader { font-size: 0.9rem; color: #999; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="finish-card">
+        <h1>ДЕНЬ ОКОНЧЕН!</h1>
+        <p>Ты отлично поработал в баре!</p>
+        
+        <div class="score-display">
+            🪙 <span id="final-score">0</span>
+        </div>
+
+        <button class="btn btn-ad" onclick="watchAd()">
+            <span>📺</span> УДВОИТЬ (x2)
+        </button>
+
+        <button id="collect-btn" class="btn btn-collect" onclick="collectAndSave()">ЗАБРАТЬ</button>
+        
+        <div id="loader" class="saving-loader">Сохранение в облако...</div>
+    </div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUzAbJBjV6H9M-iUg2yDNIE6OF9mjMDbs",
+            authDomain: "resortrush-7e79c.firebaseapp.com",
+            projectId: "resortrush-7e79c",
+            storageBucket: "resortrush-7e79c.firebasestorage.app",
+            messagingSenderId: "158135556219",
+            appId: "1:158135556219:web:09630d90e3823d18e12ade",
+            measurementId: "G-V75XKMSXMX"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Получаем счет
+        let currentScore = parseInt(new URLSearchParams(window.location.search).get('score')) || 0;
+        document.getElementById('final-score').innerText = currentScore;
+
+        function watchAd() {
+            // Заглушка рекламы
+            alert("Просмотр рекламы... (заглушка)");
+            currentScore *= 2;
+            document.getElementById('final-score').innerText = currentScore;
+            document.querySelector('.btn-ad').style.display = 'none'; // Убираем после использования
+        }
+
+        function collectAndSave() {
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('collect-btn').disabled = true;
+
+            const playerName = localStorage.getItem('pName') || "Аноним";
+            const resortName = localStorage.getItem('rName') || "Остров";
+            let country = localStorage.getItem('playerCountry') || "Неизвестно";
+
+            // Сохраняем в Firebase
+            db.collection("leaderboard").add({
+                name: playerName,
+                resortName: resortName,
+                country: country,
+                points: currentScore,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                // После сохранения идем в index2 (Сад)
+                window.location.href = 'index2.html';
+            })
+            .catch((error) => {
+                console.error("Firebase Error:", error);
+                window.location.href = 'index2.html'; // Все равно идем дальше при ошибке
+            });
+        }
+    </script>
+</body>
+</html>

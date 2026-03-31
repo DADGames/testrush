@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Resort Rush | Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Nunito:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root { 
+            --gardenscapes-orange: #FF8C00;
+            --bright-green: #2ECC71;
+            --ocean-blue: #3498db;
+            --font-main: 'Fredoka', sans-serif;
+            --font-text: 'Nunito', sans-serif;
+        }
+        body, html { margin: 0; padding: 0; font-family: var(--font-text); background: #1a1a1a; color: white; height: 100%; width: 100%; overflow: hidden; }
+        .rating-bg { position: fixed; width: 100%; height: 100%; background: url('assets/reception.png') no-repeat center center; background-size: cover; filter: blur(5px) brightness(0.6); z-index: -1; }
+        .container { display: flex; flex-direction: column; align-items: center; height: 100vh; padding: 20px; box-sizing: border-box; }
+        h1 { font-family: var(--font-main); text-shadow: 0 4px 10px rgba(0,0,0,0.5); margin: 10px 0; font-size: 2.2rem; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { font-family: var(--font-main); padding: 10px 25px; border-radius: 30px; border: none; cursor: pointer; background: rgba(255,255,255,0.2); color: white; transition: 0.3s; font-size: 1.1rem; }
+        .tab-btn.active { background: var(--gardenscapes-orange); box-shadow: 0 4px 0 #d35400; }
+
+        .board-wrapper { background: rgba(255, 255, 255, 0.95); width: 100%; max-width: 450px; border-radius: 25px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.4); color: #333; }
+        .list-header { background: #f1f1f1; display: flex; padding: 12px 20px; font-weight: bold; border-bottom: 2px solid #ddd; }
+        .list-body { max-height: 60vh; overflow-y: auto; min-height: 200px; }
+        .player-row { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #eee; }
+        .player-row.me { background: #fff9c4; border-left: 6px solid var(--gardenscapes-orange); font-weight: bold; }
+        
+        .rank { width: 40px; font-family: var(--font-main); color: var(--ocean-blue); font-size: 1.2rem; }
+        .name-box { flex: 1; padding: 0 10px; }
+        .name-box b { font-size: 1.1rem; display: block; }
+        .name-box small { color: #777; }
+        .score { width: 90px; text-align: right; font-family: var(--font-main); color: var(--bright-green); font-size: 1.1rem; }
+        
+        .btn-back { margin-top: 20px; font-family: var(--font-main); background: var(--ocean-blue); color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 0 #2980b9; }
+    </style>
+</head>
+<body>
+    <div class="rating-bg"></div>
+    <div class="container">
+        <h1>ЛИДЕРЫ</h1>
+
+        <div class="tabs">
+            <button id="btn-ind" class="tab-btn active" onclick="switchTab('individual')">ИГРОКИ</button>
+            <button id="btn-cty" class="tab-btn" onclick="switchTab('countries')">СТРАНЫ</button>
+        </div>
+
+        <div class="board-wrapper">
+            <div class="list-header"><div class="rank">#</div><div class="name-box">ИМЯ / СТРАНА</div><div class="score">ОЧКИ</div></div>
+            <div id="leaderboard-list" class="list-body">
+                <div style="padding: 40px; text-align: center;">Загрузка...</div>
+            </div>
+        </div>
+        <button class="btn-back" onclick="window.history.back()">НАЗАД</button>
+    </div>
+
+    <script>
+        // ТВОЙ КОНФИГ ИЗ СКРИНШОТА
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUzAbJBjV6H9M-iUg2yDNIE6OF9mjMDbs",
+            authDomain: "resortrush-7e79c.firebaseapp.com",
+            projectId: "resortrush-7e79c",
+            storageBucket: "resortrush-7e79c.firebasestorage.app",
+            messagingSenderId: "158135556219",
+            appId: "1:158135556219:web:09630d90e3823d18e12ade",
+            measurementId: "G-V75XKMSXMX"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentView = 'individual';
+
+        async function loadLeaderboard() {
+            const listEl = document.getElementById('leaderboard-list');
+            const myName = localStorage.getItem('pName');
+
+            try {
+                const snapshot = await db.collection("leaderboard")
+                    .orderBy("points", "desc")
+                    .get();
+
+                listEl.innerHTML = '';
+                
+                if (currentView === 'individual') {
+                    // Топ-10 игроков
+                    let players = [];
+                    snapshot.forEach(doc => players.push(doc.data()));
+                    
+                    players.slice(0, 10).forEach((d, i) => renderRow(i + 1, d.name, d.points, d.country, d.name === myName));
+                } else {
+                    // Рейтинг стран (сумма очков)
+                    let countries = {};
+                    snapshot.forEach(doc => {
+                        const d = doc.data();
+                        const cName = d.country === "Киргизия" ? "Кыргызстан" : d.country;
+                        countries[cName] = (countries[cName] || 0) + d.points;
+                    });
+
+                    let sortedC = Object.entries(countries).sort((a,b) => b[1] - a[1]);
+                    sortedC.slice(0, 10).forEach((c, i) => renderRow(i + 1, c[0], c[1], ''));
+                }
+            } catch (e) {
+                listEl.innerHTML = '<div style="padding: 20px; text-align: center;">Ошибка загрузки</div>';
+            }
+        }
+
+        function renderRow(rank, name, score, sub, isMe) {
+            const listEl = document.getElementById('leaderboard-list');
+            const row = document.createElement('div');
+            row.className = `player-row ${isMe ? 'me' : ''}`;
+            row.innerHTML = `
+                <div class="rank">${rank}</div>
+                <div class="name-box"><b>${name}</b><small>${sub}</small></div>
+                <div class="score">${score.toLocaleString()}</div>
+            `;
+            listEl.appendChild(row);
+        }
+
+        function switchTab(type) {
+            currentView = type;
+            document.getElementById('btn-ind').classList.toggle('active', type === 'individual');
+            document.getElementById('btn-cty').classList.toggle('active', type === 'countries');
+            loadLeaderboard();
+        }
+
+        window.onload = loadLeaderboard;
+    </script>
+</body>
+</html>
