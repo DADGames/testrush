@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Resort Tycoon | CrazyGames</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Nunito:wght@700&display=swap" rel="stylesheet">
     
@@ -32,7 +32,13 @@
         
         .active { display: flex; }
 
-        #preloader, #splash { background-color: #2c3e50; background-image: url('assets/logo.png'); }
+        #preloader, #splash { 
+            background-color: #2c3e50; 
+            background-image: url('assets/logo.png');
+            background-size: contain; /* Чтобы логотип не срезало */
+            background-position: center 30%;
+        }
+
         #letter-screen { background-color: #34495e; background-image: url('assets/reception.png'); }
         #map-screen { background-color: #27ae60; background-image: url('assets/map.png'); }
 
@@ -44,6 +50,7 @@
             background: #fdf5e6; color: #333; padding: 25px; border-radius: 25px; 
             width: 85%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
             border: 4px solid #e0d5b8; position: relative; z-index: 2; text-align: center;
+            box-sizing: border-box;
         }
 
         h2 { 
@@ -61,14 +68,10 @@
             box-sizing: border-box; 
         }
 
-        /* Убираем стрелки выбора в инпутах */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
         }
 
         .btn-action { 
@@ -82,7 +85,7 @@
         .btn-action:disabled { background: #bdc3c7; box-shadow: 0 6px 0 #95a5a6; }
 
         .map-icon {
-            position: absolute; width: 80px; height: 80px;
+            position: absolute; width: 70px; height: 70px;
             background-size: cover; z-index: 500;
             border-radius: 50%;
         }
@@ -93,7 +96,7 @@
             background-position: -896px -640px;
             display: flex; align-items: center; justify-content: center;
         }
-        .icon-lock::after { content: '🔒'; font-size: 30px; }
+        .icon-lock::after { content: '🔒'; font-size: 24px; }
 
         .icon-garden-start { 
             background-color: var(--gold);
@@ -114,13 +117,10 @@
         }
 
         #finger-pointer {
-            position: absolute;
-            width: 60px; height: 60px;
+            position: absolute; width: 60px; height: 60px;
             background-image: url('assets/ui_spritesheet.png');
             background-position: -384px -896px;
-            z-index: 1100;
-            display: none;
-            pointer-events: none;
+            z-index: 1100; display: none; pointer-events: none;
             animation: fingerClick 0.8s infinite;
         }
         #finger-pointer::before { content: '👆'; font-size: 50px; }
@@ -131,11 +131,11 @@
             100% { transform: translateY(0); }
         }
 
-        .pos-court { top: 15%; left: 20%; }
-        .pos-dog { top: 10%; left: 75%; }
-        .pos-houseL { top: 40%; left: 15%; }
-        .pos-houseR { top: 35%; left: 80%; }
-        .pos-garden { top: 55%; left: 45%; } 
+        .pos-court { top: 18%; left: 20%; }
+        .pos-dog { top: 12%; left: 72%; }
+        .pos-houseL { top: 45%; left: 15%; }
+        .pos-houseR { top: 40%; left: 78%; }
+        .pos-garden { top: 60%; left: 45%; } 
 
         .parrot-talk-wrap {
             position: absolute; bottom: 20px; left: 50%;
@@ -148,7 +148,7 @@
             background: #fff; border: 4px solid var(--gardenscapes-orange);
             border-radius: 20px; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; padding: 20px; 
-            color: #333; font-family: var(--font-main); font-size: 20px;
+            color: #333; font-family: var(--font-main); font-size: 18px;
             text-align: center; position: relative;
         }
 
@@ -160,18 +160,19 @@
         }
 
         .parrot-img {
-            width: 150px; height: 150px;
+            width: 120px; height: 120px;
             background: #f1c40f; border-radius: 50%;
-            margin-left: -30px; z-index: 1001;
-            border: 4px solid white;
+            margin-left: -20px; z-index: 1001;
+            border: 4px solid white; flex-shrink: 0;
         }
-        .parrot-img::after { content: '🦜'; font-size: 80px; display: block; text-align: center; line-height: 140px; }
+        .parrot-img::after { content: '🦜'; font-size: 60px; display: block; text-align: center; line-height: 110px; }
 
         .bottom-phrases {
-            position: absolute; bottom: 47%; /* Смещено на 3% ниже от центральной линии (было 50%) */
+            position: absolute; bottom: 44%; /* Текст загрузки на 3% ниже от центра (50-3-3) */
             font-family: var(--font-main); font-size: 1.2rem;
             text-shadow: 2px 2px 0px #000;
             background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -208,7 +209,7 @@
 
         <div class="parrot-talk-wrap" id="parrot-ui">
             <div class="dialog-frame">
-                <span id="parrot-phrase">Привет, Капитан! Я Ара, твой помощник!</span>
+                <span id="parrot-phrase">...</span>
                 <button class="btn-next-dialog" onclick="nextDialogue()">ДАЛЕЕ</button>
             </div>
             <div class="parrot-img"></div>
@@ -216,9 +217,7 @@
     </div>
 
     <script>
-        const countryList = [
-            "Австралия", "Австрия", "Азербайджан", "Албания", "Алжир", "Ангола", "Андорра", "Антигуа и Барбуда", "Аргентина", "Армения", "Афганистан", "Багамы", "Бангладеш", "Барбадос", "Бахрейн", "Белиз", "Бельгия", "Бенин", "Беларусь", "Болгария", "Боливия", "Босния и Герцеговина", "Ботсвана", "Бразилия", "Бруней", "Буркина-Фасо", "Бурунди", "Бутан", "Вануату", "Великобритания", "Венгрия", "Венесуэла", "Вьетнам", "Габон", "Гаити", "Гайана", "Гамбия", "Гана", "Гватемала", "Гвинея", "Гвинея-Бисау", "Германия", "Гондурас", "Гренада", "Греция", "Грузия", "Дания", "Джибути", "Доминика", "Доминиканская Республика", "Египет", "Замбия", "Зимбабве", "Израиль", "Индия", "Индонезия", "Иордания", "Ирак", "Иран", "Ирландия", "Исландия", "Испания", "Италия", "Йемен", "Кабо-Верде", "Казахстан", "Камбоджа", "Камерун", "Канада", "Катар", "Кения", "Кипр", "Кыргызстан", "Кирибати", "Китай", "Колумбия", "Коморы", "Конго", "Коста-Рика", "Кот-д'Ивуар", "Куба", "Кувейт", "Лаос", "Латвия", "Лесото", "Либерия", "Ливан", "Ливия", "Литва", "Лихтенштейн", "Люксембург", "Маврикий", "Мавритания", "Мадагаскар", "Малави", "Малайзия", "Мали", "Мальдивы", "Мальта", "Марокко", "Маршалловы Острова", "Мексика", "Микронезия", "Мозамбик", "Молдова", "Монако", "Монголия", "Мьянма", "Намибия", "Науру", "Непал", "Нигер", "Нигерия", "Нидерланды", "Никарагуа", "Новая Зеландия", "Норвегия", "ОАЭ", "Оман", "Пакистан", "Палау", "Панама", "Папуа — Новая Гвинея", "Парагвай", "Перу", "Польша", "Португалия", "Россия", "Руанда", "Румыния", "Сальвадор", "Самоа", "Сан-Марино", "Сан-Томе и Принсипи", "Саудовская Аравия", "Северная Македония", "Сейшелы", "Сенегал", "Сент-Винсент и Гренадины", "Сент-Китс и Невис", "Сент-Люсия", "Сербия", "Сингапур", "Сирия", "Словакия", "Словения", "Соломоновы Острова", "Сомали", "Судан", "Суринам", "США", "Сьерра-Леоне", "Таджикистан", "Таиланд", "Танзания", "Того", "Тонга", "Тринидад и Тобаго", "Тувалу", "Тунис", "Туркменистан", "Турция", "Уганда", "Узбекистан", "Украина", "Уругвай", "Фиджи", "Филиппины", "Финляндия", "Франция", "Хорватия", "ЦАР", "Чад", "Черногория", "Чехия", "Чили", "Швейцария", "Швеция", "Шри-Ланка", "Эквадор", "Экваториальная Гвинея", "Эритрея", "Эсватини", "Эстония", "Эфиопия", "ЮАР", "Южная Корея", "Южный Судан", "Ямайка", "Япония"
-        ];
+        const countryList = ["Австралия", "Австрия", "Азербайджан", "Албания", "Алжир", "Ангола", "Андорра", "Антигуа и Барбуда", "Аргентина", "Армения", "Афганистан", "Багамы", "Бангладеш", "Барбадос", "Бахрейн", "Белиз", "Бельгия", "Бенин", "Беларусь", "Болгария", "Боливия", "Босния и Герцеговина", "Ботсвана", "Бразилия", "Бруней", "Буркина-Фасо", "Бурунди", "Бутан", "Вануату", "Великобритания", "Венгрия", "Венесуэла", "Вьетнам", "Габон", "Гаити", "Гайана", "Гамбия", "Гана", "Гватемала", "Гвинея", "Гвинея-Бисау", "Германия", "Гондурас", "Гренада", "Греция", "Грузия", "Дания", "Джибути", "Доминика", "Доминиканская Республика", "Египет", "Замбия", "Зимбабве", "Израиль", "Индия", "Индонезия", "Иордания", "Ирак", "Иран", "Ирландия", "Исландия", "Испания", "Италия", "Йемен", "Кабо-Верде", "Казахстан", "Камбоджа", "Камерун", "Канада", "Катар", "Кения", "Кипр", "Кыргызстан", "Кирибати", "Китай", "Колумбия", "Коморы", "Конго", "Коста-Рика", "Кот-д'Ивуар", "Куба", "Кувейт", "Лаос", "Латвия", "Лесото", "Либерия", "Ливан", "Ливия", "Литва", "Лихтенштейн", "Люксембург", "Маврикий", "Мавритания", "Мадагаскар", "Малави", "Малайзия", "Мали", "Мальдивы", "Мальта", "Марокко", "Маршалловы Острова", "Мексика", "Микронезия", "Мозамбик", "Молдова", "Монако", "Монголия", "Мьянма", "Намибия", "Науру", "Непал", "Нигер", "Нигерия", "Нидерланды", "Никарагуа", "Новая Зеландия", "Норвегия", "ОАЭ", "Оман", "Пакистан", "Палау", "Панама", "Папуа — Новая Гвинея", "Парагвай", "Перу", "Польша", "Португалия", "Россия", "Руанда", "Румыния", "Сальвадор", "Самоа", "Сан-Марино", "Сан-Томе и Принсипи", "Саудовская Аравия", "Северная Македония", "Сейшелы", "Сенегал", "Сент-Винсент и Гренадины", "Сент-Китс и Невис", "Сент-Люсия", "Сербия", "Сингапур", "Сирия", "Словакия", "Словения", "Соломоновы Острова", "Сомали", "Судан", "Суринам", "США", "Сьерра-Леоне", "Таджикистан", "Таиланд", "Танзания", "Того", "Тонга", "Тринидад и Тобаго", "Тувалу", "Тунис", "Туркменистан", "Турция", "Уганда", "Узбекистан", "Украина", "Уругвай", "Фиджи", "Филиппины", "Финляндия", "Франция", "Хорватия", "ЦАР", "Чад", "Черногория", "Чехия", "Чили", "Швейцария", "Швеция", "Шри-Ланка", "Эквадор", "Экваториальная Гвинея", "Эритрея", "Эсватини", "Эстония", "Эфиопия", "ЮАР", "Южная Корея", "Южный Судан", "Ямайка", "Япония"];
 
         const select = document.getElementById('userCountry');
         countryList.forEach(country => {
@@ -228,16 +227,16 @@
         });
 
         const music = document.getElementById('bgMusic');
+        music.volume = 0.1; // Громкость 10%
         
-        const dialogues = [
-            "Привет, Капитан! Я Ара, твой помощник!",
-            "Твой остров выглядит заброшенным...",
-            "Давай наведем порядок! Жми на Сад, чтобы начать."
-        ];
+        let dialogues = [];
         let currentDialogue = 0;
 
         window.addEventListener('load', () => {
-            setTimeout(() => showScreen('splash'), 1500);
+            setTimeout(() => {
+                showScreen('splash');
+                music.play().catch(() => {}); // Пробуем старт на сплеше
+            }, 1500);
         });
 
         function showScreen(id) {
@@ -249,6 +248,17 @@
             }
 
             if(id === 'map-screen') {
+                const name = document.getElementById('pName').value;
+                const country = document.getElementById('userCountry').value;
+                
+                dialogues = [
+                    `Привет, ${name}! Это твой шанс попасть в рейтинг лучших резортов мира`,
+                    `И поднять рейтинг страны: ${country}!`,
+                    `Но сначала приведи все в порядок...`,
+                    `Жми на локацию сада и начинай все улучшать! Удачи!`
+                ];
+                
+                document.getElementById('parrot-phrase').innerText = dialogues[0];
                 setTimeout(() => {
                     document.getElementById('parrot-ui').style.display = 'flex';
                 }, 500);
@@ -256,7 +266,7 @@
         }
 
         function startJourney() {
-            music.play().catch(e => console.log("Музыка ждет взаимодействия"));
+            music.play().catch(() => {}); // Повторный старт при клике
             showScreen('map-screen');
         }
 
@@ -273,9 +283,7 @@
             }
         }
 
-        function goToGame() { 
-            window.location.href = 'game.html'; 
-        }
+        function goToGame() { window.location.href = 'game.html'; }
 
         function validate() {
             const p = document.getElementById('pName').value;
